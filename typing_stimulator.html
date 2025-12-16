@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Typing Simulator</title>
+  <style>
+    :root{
+      --bg1:#0b1220;
+      --bg2:#0f1b2d;
+      --card:#0f172a;
+      --card2:#111c33;
+      --text:#e6e9f2;
+      --muted:#a7b0c5;
+      --line:rgba(255,255,255,.10);
+      --accent:#7c3aed;
+      --accent2:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 700px at 15% 15%, rgba(124,58,237,.35), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.22), transparent 55%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 22px 16px 42px; }
+    .top{
+      display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;
+      margin-bottom: 16px;
+    }
+    h1{
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: .2px;
+    }
+    .sub{
+      margin-top: 6px;
+      color: var(--muted);
+      max-width: 70ch;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .badge{
+      display:inline-flex; gap:8px; align-items:center;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.04);
+      box-shadow: 0 10px 28px rgba(0,0,0,.2);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:50%;
+      background: var(--accent2);
+      box-shadow: 0 0 0 6px rgba(34,197,94,.12);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 14px;
+    }
+    @media (max-width: 920px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHeader{
+      padding: 14px 14px 10px;
+      display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0,0,0,.12);
+    }
+    .cardHeader h2{
+      margin:0;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: .2px;
+    }
+    .pill{
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+    }
+    .cardBody{ padding: 14px; }
+
+    /* Chat UI */
+    .chat{
+      background: radial-gradient(900px 450px at 20% 0%, rgba(124,58,237,.13), transparent 58%),
+                  linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 12px;
+      min-height: 290px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .bubbleRow{ display:flex; }
+    .bubble{
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      line-height: 1.35;
+      font-size: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 22px rgba(0,0,0,.25);
+    }
+    .me{ justify-content:flex-end; }
+    .me .bubble{
+      background: linear-gradient(180deg, rgba(124,58,237,.35), rgba(124,58,237,.22));
+      border-top-right-radius: 6px;
+    }
+    .them{ justify-content:flex-start; }
+    .them .bubble{
+      background: linear-gradient(180deg, rgba(34,197,94,.22), rgba(34,197,94,.14));
+      border-top-left-radius: 6px;
+    }
+
+    .typingWrap{
+      display:flex; align-items:center; gap:10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+      color: var(--muted);
+      font-size: 13px;
+      opacity: .95;
+    }
+    .typingDots{
+      display:inline-flex; gap:6px; align-items:center;
+    }
+    .typingDots span{
+      width:7px; height:7px; border-radius:50%;
+      background: rgba(230,233,242,.75);
+      display:inline-block;
+      animation: bounce 1.1s infinite ease-in-out;
+    }
+    .typingDots span:nth-child(2){ animation-delay: .12s; opacity:.9; }
+    .typingDots span:nth-child(3){ animation-delay: .24s; opacity:.8; }
+    @keyframes bounce{
+      0%, 80%, 100% { transform: translateY(0); opacity:.55; }
+      40% { transform: translateY(-6px); opacity:1; }
+    }
+    .hidden{ display:none !important; }
+
+    .inputArea{
+      margin-top:auto;
+      display:flex; gap:10px; align-items:flex-end;
+      padding-top: 10px;
+    }
+    textarea{
+      width: 100%;
+      min-height: 88px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline:none;
+    }
+    textarea:focus{
+      border-color: rgba(124,58,237,.6);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+    }
+
+    /* Controls */
+    .controls{
+      display:grid;
+      gap: 12px;
+    }
+    .control{
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+    }
+    .controlTop{
+      display:flex; justify-content:space-between; gap:10px; align-items:center;
+      margin-bottom: 8px;
+    }
+    .label{
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .value{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      white-space: nowrap;
+    }
+    input[type="range"]{ width: 100%; }
+
+    .row2{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    select{
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      outline:none;
+    }
+
+    .btn{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      cursor:pointer;
+      font-size: 13px;
+      transition: transform .06s ease;
+    }
+    .btn:hover{ background: rgba(255,255,255,.10); }
+    .btn:active{ transform: translateY(1px); }
+
+    /* Log */
+    .log{
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      overflow:hidden;
+    }
+    .logHead{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .logBody{
+      padding: 10px 12px;
+      max-height: 240px;
+      overflow:auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: rgba(230,233,242,.92);
+      line-height: 1.35;
+    }
+    .hint{
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+    .kpi{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+      color: rgba(230,233,242,.92);
+    }
+    .kpi b{ color: var(--text); font-weight: 700; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Typing Simulator</h1>
+        <div class="sub">
+          Type on the left. The “receiver” on the right decides whether to show <b>typing…</b>
+          using a time threshold Δ + simulated network delay/jitter. This is the same idea used by chat apps to avoid flicker.
+        </div>
+      </div>
+      <div class="badge">
+        <span class="dot"></span>
+        <span>Play with sliders • Open DevTools if you want</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Left: Sender -->
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Sender (you)</h2>
+          <span class="pill">Just type like normal</span>
+        </div>
+        <div class="cardBody">
+          <div class="chat" id="chatLeft">
+            <div class="bubbleRow them">
+              <div class="bubble">Try typing slowly… then pause. Change Δ and see what feels “right”.</div>
+            </div>
+
+            <div class="bubbleRow me">
+              <div class="bubble">Okay. I’m typing now</div>
+            </div>
+
+            <div class="inputArea">
+              <textarea id="box" placeholder="Type here… (this simulates your keyboard events)"></textarea>
+            </div>
+          </div>
+          <div class="hint">
+            Tip: Set <b>Mode = Naive</b> to see flicker. Then switch back to <b>Debounced</b>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Receiver -->
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Receiver</h2>
+          <span class="pill">Decision logic lives here</span>
+        </div>
+        <div class="cardBody">
+          <div class="chat">
+            <div class="bubbleRow them">
+              <div class="bubble">I’m watching for typing events…</div>
+            </div>
+
+            <div class="typingWrap" id="typingWrap">
+              <span class="typingDots" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
+              <span id="indicatorText">typing…</span>
+            </div>
+
+            <div class="bubbleRow them">
+              <div class="bubble" style="opacity:.88;">
+                When events stop arriving for Δ milliseconds, I hide “typing…”.
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;" class="kpi">
+            <span>last_event_time: <b id="lastEvent">—</b></span>
+            <span>now - last_event: <b id="diff">—</b> ms</span>
+          </div>
+
+          <div style="margin-top:12px;" class="controls">
+            <div class="control">
+              <div class="controlTop">
+                <div class="label">Threshold Δ (ms)</div>
+                <div class="value" id="deltaVal"></div>
+              </div>
+              <input id="delta" type="range" min="100" max="2500" step="50" value="800">
+              <div class="hint">Small Δ = responsive but flickery. Bigger Δ = smoother but “sticks” longer.</div>
+            </div>
+
+            <div class="control">
+              <div class="controlTop">
+                <div class="label">Network delay (base ms)</div>
+                <div class="value" id="delayVal"></div>
+              </div>
+              <input id="delay" type="range" min="0" max="1200" step="50" value="150">
+            </div>
+
+            <div class="control">
+              <div class="controlTop">
+                <div class="label">Network jitter (± ms)</div>
+                <div class="value" id="jitterVal"></div>
+              </div>
+              <input id="jitter" type="range" min="0" max="600" step="25" value="100">
+            </div>
+
+            <div class="row2">
+              <div>
+                <span class="label">Mode</span><br>
+                <select id="mode">
+                  <option value="debounced" selected>Debounced (smooth)</option>
+                  <option value="naive">Naive (flickers)</option>
+                </select>
+              </div>
+              <button class="btn" id="clear">Clear log</button>
+            </div>
+          </div>
+
+          <div class="log" style="margin-top:12px;">
+            <div class="logHead">
+              <div class="label">Event log (what arrived, and when)</div>
+              <span class="pill">event stream</span>
+            </div>
+            <div class="logBody" id="log"></div>
+          </div>
+
+          <div class="hint">
+            The simple rule behind the scenes is:
+            <span class="value">show typing if (now − last_event) &lt; Δ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const box = document.getElementById("box");
+  const typingWrap = document.getElementById("typingWrap");
+  const log = document.getElementById("log");
+
+  const delta = document.getElementById("delta");
+  const delay = document.getElementById("delay");
+  const jitter = document.getElementById("jitter");
+  const mode = document.getElementById("mode");
+
+  const deltaVal = document.getElementById("deltaVal");
+  const delayVal = document.getElementById("delayVal");
+  const jitterVal = document.getElementById("jitterVal");
+
+  const lastEventEl = document.getElementById("lastEvent");
+  const diffEl = document.getElementById("diff");
+
+  const clearBtn = document.getElementById("clear");
+
+  let lastTypingEventAt = null;
+  let hideTimer = null;
+
+  function nowMs(){ return Date.now(); }
+
+  function showTyping(on){
+    typingWrap.classList.toggle("hidden", !on);
+  }
+
+  function appendLog(line){
+    log.innerHTML += line + "\n";
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function latency(){
+    const base = Number(delay.value);
+    const j = Number(jitter.value);
+    const swing = j ? (Math.random() * (2*j) - j) : 0;
+    return Math.max(0, Math.round(base + swing));
+  }
+
+  // Receiver-side: this is the “decision logic”
+  function receiverOnTypingEvent(sentAt, deliveredAt){
+    lastTypingEventAt = deliveredAt;
+    lastEventEl.textContent = deliveredAt;
+
+    showTyping(true);
+
+    appendLog(
+      `delivered typing_event | sent=${sentAt} | delivered=${deliveredAt} | latency=${deliveredAt - sentAt}ms`
+    );
+
+    const D = Number(delta.value);
+
+    if (mode.value === "naive"){
+      // Flicker on purpose: hide super quickly
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => showTyping(false), 120);
+      return;
+    }
+
+    // Debounced: hide only if we've had Δ ms of silence
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      const diff = nowMs() - lastTypingEventAt;
+      if (diff >= D) showTyping(false);
+    }, D);
+  }
+
+  // Sender: emit events when you type (simulated)
+  box.addEventListener("input", () => {
+    const sentAt = nowMs();
+    const L = latency();
+    setTimeout(() => {
+      const deliveredAt = nowMs();
+      receiverOnTypingEvent(sentAt, deliveredAt);
+    }, L);
+  });
+
+  // Live UI values + timers
+  function tick(){
+    deltaVal.textContent = delta.value;
+    delayVal.textContent = delay.value;
+    jitterVal.textContent = jitter.value;
+
+    if (lastTypingEventAt == null){
+      diffEl.textContent = "—";
+    } else {
+      diffEl.textContent = String(nowMs() - lastTypingEventAt);
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  clearBtn.addEventListener("click", () => { log.textContent = ""; });
+
+  // Start hidden (idle)
+  showTyping(false);
+</script>
+</body>
+</html>
